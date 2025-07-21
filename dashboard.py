@@ -4,8 +4,8 @@ import pydeck as pdk
 from db_config import get_connection
 from cluster import get_gauge_data, label_status, cluster_gauges
 
-st.set_page_config(page_title="Flood‑Alert Dashboard", layout="wide")
-st.title("🌊 Community Flood‑Alert Dashboard")
+st.set_page_config(page_title="RMCO Flood‑Alert Dashboard", layout="wide")
+st.title("🌊 RMCO Community Flood‑Alert Dashboard")
 
 # 1. Load data and label statuses
 data = get_gauge_data()
