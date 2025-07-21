@@ -1,38 +1,46 @@
-# usgs_fetch.py
-# Fetch the latest instantaneous water‑level reading from USGS
-
 import requests
 import pandas as pd
+from db_config import get_connection
 
 USGS_URL = "https://waterservices.usgs.gov/nwis/iv/"
 
 def fetch_latest_reading(site_id: str):
     """
-    Query USGS for the most recent gauge-height (parameterCd=00065).
-    Returns a tuple: (timestamp: pd.Timestamp, water_level_ft: float)
+    Call USGS API for gauge-height (parameterCd=00065).
+    Returns (timestamp_iso: str, water_level_ft: float).
     """
-    params = {
-        "format": "json",
-        "sites": site_id,
-        "parameterCd": "00065"
-    }
+    params = {"format": "json", "sites": site_id, "parameterCd": "00065"}
     resp = requests.get(USGS_URL, params=params)
     resp.raise_for_status()
-    data = resp.json()
+    series = resp.json()["value"]["timeSeries"]
+    if not series or not series[0]["values"][0]["value"]:
+        raise ValueError(f"No data for site {site_id}")
+    latest = series[0]["values"][0]["value"][-1]
+    ts = pd.to_datetime(latest["dateTime"]).isoformat()
+    lvl = float(latest["value"])
+    return ts, lvl
 
-    # Navigate JSON to the list of values
-    series = data["value"]["timeSeries"]
-    if not series:
-        raise ValueError(f"No data returned for site {site_id}")
+def fetch_and_store_readings():
+    """
+    Fetch latest reading for each seeded gauge and insert into readings.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    # get all site_ids
+    cur.execute("SELECT site_id FROM gauges;")
+    sites = [row["site_id"] for row in cur.fetchall()]
+    for site in sites:
+        try:
+            ts, lvl = fetch_latest_reading(site)
+            cur.execute(
+                "INSERT INTO readings (site_id, timestamp, water_level_ft) VALUES (?, ?, ?);",
+                (site, ts, lvl)
+            )
+            conn.commit()
+        except Exception as e:
+            print(f"[fetch error] {site}: {e}")
+    conn.close()
 
-    values = series[0]["values"][0]["value"]
-    if not values:
-        raise ValueError(f"No value entries for site {site_id}")
-
-    latest = values[-1]
-    timestamp = pd.to_datetime(latest["dateTime"])
-    water_level = float(latest["value"])
-    return timestamp, water_level
 
 
 
