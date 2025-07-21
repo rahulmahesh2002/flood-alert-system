@@ -1,14 +1,12 @@
 
 # db_config.py
 import os
-from dotenv import load_dotenv
-
-load_dotenv()  # loads .env into os.environ
+import mysql.connector
 
 def get_connection():
     return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASS"),
-        database=os.getenv("DB_NAME")
+        host=os.environ["DB_HOST"],
+        user=os.environ["DB_USER"],
+        password=os.environ["DB_PASS"],
+        database=os.environ["DB_NAME"]
     )
