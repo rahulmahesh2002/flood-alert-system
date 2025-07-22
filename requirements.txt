@@ -1,9 +1,0 @@
-flask
-apscheduler
-requests
-pandas
-scikit-learn
-streamlit
-pydeck
-numpy
-
